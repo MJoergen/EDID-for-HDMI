@@ -223,7 +223,7 @@ BEGIN
         BEGIN
         IF RISING_EDGE(clk) THEN
             tx_name <= nameLogic(47 - nameCounter * 8 DOWNTO 40 - nameCounter * 8);
-            tx_reso <= resoLogic(95 - resoCounter * 8 DOWNTO 88 - nameCounter * 8);
+            tx_reso <= resoLogic(95 - resoCounter * 8 DOWNTO 88 - resoCounter * 8);
         END IF;
     END PROCESS;
 END ARCHITECTURE;

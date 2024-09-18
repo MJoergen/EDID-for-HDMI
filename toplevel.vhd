@@ -145,16 +145,23 @@ BEGIN
                         tx_valid <= '1';
                     END IF;
                 WHEN MANU => tx_data <= screenName(7 + charInd * 8 DOWNTO charInd + 8);
-                    IF charInd = 12 THEN
+                    IF tx_valid = '1' AND tx_ready = '1' AND charInd < 11 THEN
+                        IF counter /= 1 THEN
+                            counter <= counter + 1;
+                        ELSE
+                            charInd <= charInd + 1;
+                            counter <= 0;
+                        END IF;
+                    ELSIF tx_valid AND tx_ready THEN
                         charInd <= 0;
                         nextDisplay <= RESO;
-                    ELSE
-                        charInd <= charInd + 1;
+                    ELSIF NOT tx_valid THEN
+                        tx_valid <= '1';
                     END IF;
                 WHEN RESO => resoString <= "Resolution: ";
                     resoLogic <= STR2SLV(resoString, resoLogic);
                     tx_data <= BITSHIFT(tx_reso);
-                    IF tx_valid = '1' AND tx_ready = '1' AND resoCounter < 5 THEN
+                    IF tx_valid = '1' AND tx_ready = '1' AND resoCounter < 11 THEN
                         IF counter /= 1 THEN
                             counter <= counter + 1;
                         ELSE
@@ -167,7 +174,7 @@ BEGIN
                     ELSIF NOT tx_valid THEN
                         tx_valid <= '1';
                     END IF;
-                WHEN DIME => IF tx_valid = '1' THEN
+                WHEN DIME => IF tx_valid = '1' AND tx_ready = '1' THEN
                     CASE counter IS
                     WHEN 0 => tx_data <= BITSHIFT(horThou);
                     WHEN 1 => tx_data <= BITSHIFT(horHund);
@@ -221,6 +228,14 @@ BEGIN
         IF RISING_EDGE(clk) THEN
             tx_name <= nameLogic(47 - nameCounter * 8 DOWNTO 40 - nameCounter * 8);
             tx_reso <= resoLogic(95 - resoCounter * 8 DOWNTO 88 - resoCounter * 8);
+        END IF;
+    END PROCESS;
+
+    PROCESS(ALL)
+        BEGIN
+        IF RISING_EDGE(clk) THEN
+            currentMain <= nextMain;
+            currentDisplay <= nextDisplay;
         END IF;
     END PROCESS;
 END ARCHITECTURE;

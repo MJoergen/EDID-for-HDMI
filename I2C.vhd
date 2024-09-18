@@ -112,6 +112,7 @@ BEGIN
                 ELSIF clockDiv(6 DOWNTO 5) = "11" THEN
                     SCL <= '0';
                 END IF;
+            WHEN OTHERS => nextState <= IDLE;
             END CASE;
         END IF;
     END PROCESS;

@@ -25,10 +25,8 @@ SIGNAL processStart : STD_LOGIC := '0';
 SIGNAL horBlank, verBlank : STD_LOGIC_VECTOR (11 DOWNTO 0) := (OTHERS => '0');
 SIGNAL pixelClock : STD_LOGIC_VECTOR (15 DOWNTO 0) := (OTHERS => '0');
 
-SIGNAL upScreen, downScreen : STD_LOGIC_VECTOR (6 DOWNTO 0);
-
 SIGNAL foundPrefix : STD_LOGIC_VECTOR (2 DOWNTO 0) := (OTHERS => '0');
-SIGNAL nameCount : STD_LOGIC_VECTOR (3 DOWNTO 0) := (OTHERS => '0');
+SIGNAL nameCount : INTEGER;
 SIGNAL counter : INTEGER := 0;
 SIGNAL refreshTop, refreshBot : STD_LOGIC_VECTOR (19 DOWNTO 0) := (OTHERS => '0');
 
@@ -41,7 +39,7 @@ BEGIN
         WHEN IDLE => IF enable THEN
             nextFSM <= STARTI2C;
             ready <= '0';
-            nameCount <= (OTHERS => '0');
+            nameCount <= 0;
             counter <= 0;
             refreshRate <= (OTHERS => '0');
             foundPrefix <= (OTHERS => '0');
@@ -51,7 +49,7 @@ BEGIN
             nextFSM <= WAITI2C;
             returnFSM <= SENDADDR;
         WHEN SENDADDR => instructionI2C <= WRITE;
-            byteSend <= x"50" OR x"00";
+            byteSend <= x"50";
             enableI2C <= '1';
             nextFSM <= WAITI2C;
             returnFSM <= SENDEDID;
@@ -65,7 +63,7 @@ BEGIN
             nextFSM <= WAITI2C;
             returnFSM <= SENDREAD;
         WHEN SENDREAD => instructionI2C <= WRITE;
-            byteSend <= x"50" OR x"01";
+            byteSend <= x"51";
             enableI2C <= '1';
             nextFSM <= WAITI2C;
             returnFSM <= HANDLE;
@@ -126,11 +124,9 @@ BEGIN
             enableI2C <= '1';
             nextFSM <= WAITI2C;
             returnFSM <= READNAME;
-        WHEN READNAME => upScreen <= nameCount & "000" + d"7";
-            downScreen <= nameCount & "000";
-            screenName(TO_INTEGER(UNSIGNED(upScreen)) DOWNTO TO_INTEGER(UNSIGNED(downScreen))) <= byteRCV;
-            nameCount <= nameCount + '1';
-            nextFSM <= STOPI2C WHEN nameCount = d"12" ELSE READBYTE;
+        WHEN READNAME => screenName(7 + nameCount * 8 DOWNTO nameCount * 8) <= byteRCV;
+            nameCount <= nameCount + 1;
+            nextFSM <= STOPI2C WHEN nameCount = 12 ELSE READBYTE;
         WHEN STOPI2C => instructionI2C <= STOP;
             enableI2C <= '1';
             nextFSM <= WAITI2C;

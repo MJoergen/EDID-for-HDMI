@@ -34,14 +34,12 @@ SIGNAL resoLogic : STD_LOGIC_VECTOR (95 DOWNTO 0);
 SIGNAL tx_valid, tx_ready : STD_LOGIC;
 SIGNAL tx_data, tx_name, tx_reso : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
-SIGNAL isSend, SDAIn, SDAOut : STD_LOGIC;
+SIGNAL isSend, SDAIn, SDAOut, I2CComp, I2CEnable : STD_LOGIC;
 SIGNAL I2CInstruc : state;
-SIGNAL I2CComp, I2CEnable : STD_LOGIC;
 SIGNAL byteSend, byteRCV : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
 SIGNAL enableEDID, readyEDID : STD_LOGIC;
-SIGNAL charInd : STD_LOGIC_VECTOR (3 DOWNTO 0);
-SIGNAL upScreen, downScreen : STD_LOGIC_VECTOR (6 DOWNTO 0);
+SIGNAL charInd : INTEGER;
 SIGNAL horPixel, vertPixel, refreshRate : STD_LOGIC_VECTOR (11 DOWNTO 0);
 SIGNAL screenName : STD_LOGIC_VECTOR (103 DOWNTO 0);
 
@@ -50,7 +48,7 @@ SIGNAL vertThou, vertHund, vertTens, vertOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 SIGNAL refreshThou, refreshHund, refreshTens, refreshOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
 SIGNAL counter : INTEGER RANGE 0 TO 16;
-SIGNAL nameCounter, resoCounter, strCount : INTEGER;
+SIGNAL nameCounter, resoCounter : INTEGER;
 
 COMPONENT I2C IS
     PORT(clk, SDAin, enable : IN STD_LOGIC;
@@ -111,7 +109,7 @@ END FUNCTION;
 
 BEGIN
     DATA : I2C PORT MAP(clk => clk, SDAin => SDAIn, enable => I2CEnable, instruction => I2CInstruc, byteSend => byteSend, complete => I2Ccomp, SDAout => SDAOut, SCL => SCL, isSend => isSend, byteReceived => byteRCV);
-    INFO : EDID PORT MAP(clk => clk, enable => enableEDID, compI2C => I2Ccomp, byteRCV => byteRCV, ready => readyEDID, enableI2C => I2Cenable, instructionI2C => I2CInstruc, horPixel => horPixel, vertPixel => vertPixel, refreshRate => refreshRate, screenName => screenName, byteSend => byteSend);
+    INFO :  EDID PORT MAP(clk => clk, enable => enableEDID, compI2C => I2Ccomp, byteRCV => byteRCV, ready => readyEDID, enableI2C => I2Cenable, instructionI2C => I2CInstruc, horPixel => horPixel, vertPixel => vertPixel, refreshRate => refreshRate, screenName => screenName, byteSend => byteSend);
     HOR : conv PORT MAP(clk => clk, char => horPixel, thou => horThou, hund => horHund, tens => horTens, ones => horOnes);
     VERT : conv PORT MAP(clk => clk, char => vertPixel, thou => vertThou, hund => vertHund, tens => vertTens, ones => vertOnes);
     PIXEL : conv PORT MAP(clk => clk, char => refreshRate, thou => refreshThou, hund => refreshHund, tens => refreshTens, ones => refreshOnes);
@@ -137,22 +135,21 @@ BEGIN
                         IF counter /= 1 THEN
                             counter <= counter + 1;
                         ELSE
-                            strCount <= strCount + 1;
+                            nameCounter <= nameCounter + 1;
                             counter <= 0;
                         END IF;
                     ELSIF tx_valid AND tx_ready THEN
-                        strCount <= 0;
+                        nameCounter <= 0;
                         nextDisplay <= MANU;
                     ELSIF NOT tx_valid THEN
                         tx_valid <= '1';
                     END IF;
-                WHEN MANU => upScreen <= charInd & "000" + d"7";
-                    downScreen <= charInd & "000";
-                    tx_data <= screenName(TO_INTEGER(UNSIGNED(upScreen)) DOWNTO TO_INTEGER(UNSIGNED(downScreen)));
-                    IF charInd = x"C" THEN
+                WHEN MANU => tx_data <= screenName(7 + charInd * 8 DOWNTO charInd + 8);
+                    IF charInd = 12 THEN
+                        charInd <= 0;
                         nextDisplay <= RESO;
                     ELSE
-                        charInd <= charInd + '1';
+                        charInd <= charInd + 1;
                     END IF;
                 WHEN RESO => resoString <= "Resolution: ";
                     resoLogic <= STR2SLV(resoString, resoLogic);
@@ -161,34 +158,34 @@ BEGIN
                         IF counter /= 1 THEN
                             counter <= counter + 1;
                         ELSE
-                            strCount <= strCount + 1;
+                            resoCounter <= resoCounter + 1;
                             counter <= 0;
                         END IF;
                     ELSIF tx_valid AND tx_ready THEN
-                        strCount <= 0;
+                        resoCounter <= 0;
                         nextDisplay <= DIME;
                     ELSIF NOT tx_valid THEN
                         tx_valid <= '1';
                     END IF;
                 WHEN DIME => IF tx_valid = '1' THEN
                     CASE counter IS
-                    WHEN 0 => tx_data <= horThou;
-                    WHEN 1 => tx_data <= horHund;
-                    WHEN 2 => tx_data <= horTens;
-                    WHEN 3 => tx_data <= horOnes;
-                    WHEN 4 => tx_data <= SP;
-                    WHEN 5 => tx_data <= x"78";
-                    WHEN 6 => tx_data <= SP;
-                    WHEN 7 => tx_data <= vertThou;
-                    WHEN 8 => tx_data <= vertHund;
-                    WHEN 9 => tx_data <= vertTens;
-                    WHEN 10 => tx_data <= vertOnes;
-                    WHEN 11 => tx_data <= SP;
-                    WHEN 12 => tx_data <= x"40";
-                    WHEN 13 => tx_data <= refreshTens;
-                    WHEN 14 => tx_data <= refreshOnes;
-                    WHEN 15 => tx_data <= x"48";
-                    WHEN 16 => tx_data <= x"7A";
+                    WHEN 0 => tx_data <= BITSHIFT(horThou);
+                    WHEN 1 => tx_data <= BITSHIFT(horHund);
+                    WHEN 2 => tx_data <= BITSHIFT(horTens);
+                    WHEN 3 => tx_data <= BITSHIFT(horOnes);
+                    WHEN 4 => tx_data <= BITSHIFT(SP);
+                    WHEN 5 => tx_data <= BITSHIFT(x"78");
+                    WHEN 6 => tx_data <= BITSHIFT(SP);
+                    WHEN 7 => tx_data <= BITSHIFT(vertThou);
+                    WHEN 8 => tx_data <= BITSHIFT(vertHund);
+                    WHEN 9 => tx_data <= BITSHIFT(vertTens);
+                    WHEN 10 => tx_data <= BITSHIFT(vertOnes);
+                    WHEN 11 => tx_data <= BITSHIFT(SP);
+                    WHEN 12 => tx_data <= BITSHIFT(x"40");
+                    WHEN 13 => tx_data <= BITSHIFT(refreshTens);
+                    WHEN 14 => tx_data <= BITSHIFT(refreshOnes);
+                    WHEN 15 => tx_data <= BITSHIFT(x"48");
+                    WHEN 16 => tx_data <= BITSHIFT(x"7A");
                     END CASE;
                     counter <= counter + 1;
                 END IF;
@@ -201,8 +198,8 @@ BEGIN
         BEGIN
         IF RISING_EDGE(clk) THEN
             IF NOT btn1 THEN
-                nextMain <= READ;
                 enableEDID <= '0';
+                nextMain <= READ;
             ELSE
                 CASE currentMain IS
                 WHEN READ => enableEDID <= '1';

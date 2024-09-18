@@ -171,4 +171,11 @@ BEGIN
         END CASE;
     END IF;
 END PROCESS;
+
+    PROCESS(ALL)
+    BEGIN
+        IF RISING_EDGE(clk) THEN
+            currentFSM <= nextFSM;
+        END IF;
+    END PROCESS;
 END ARCHITECTURE;

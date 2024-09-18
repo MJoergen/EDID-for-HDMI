@@ -12,7 +12,7 @@ ENTITY EDID IS
          instructionI2C : OUT state;
          horPixel, vertPixel, refreshRate : OUT STD_LOGIC_VECTOR (11 DOWNTO 0);
          screenName : OUT STD_LOGIC_VECTOR (103 DOWNTO 0);
-         byteSend, EDIDOut : OUT STD_LOGIC_VECTOR (7 DOWNTO 0) := (OTHERS => '0')
+         byteSend : OUT STD_LOGIC_VECTOR (7 DOWNTO 0) := (OTHERS => '0')
         );
 END ENTITY;
 
@@ -51,7 +51,7 @@ BEGIN
             nextFSM <= WAITI2C;
             returnFSM <= SENDADDR;
         WHEN SENDADDR => instructionI2C <= WRITE;
-            byteSend <= x"50" OR "0";
+            byteSend <= x"50" OR x"00";
             enableI2C <= '1';
             nextFSM <= WAITI2C;
             returnFSM <= SENDEDID;
@@ -65,7 +65,7 @@ BEGIN
             nextFSM <= WAITI2C;
             returnFSM <= SENDREAD;
         WHEN SENDREAD => instructionI2C <= WRITE;
-            byteSend <= x"50" OR "1";
+            byteSend <= x"50" OR x"01";
             enableI2C <= '1';
             nextFSM <= WAITI2C;
             returnFSM <= HANDLE;

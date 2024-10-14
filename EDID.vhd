@@ -2,7 +2,7 @@ LIBRARY IEEE, WORK;
 USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.NUMERIC_STD.ALL;
 USE IEEE.NUMERIC_STD_UNSIGNED.ALL;
-USE WORK.common.ALL;
+USE WORK.states.ALL;
 
 ENTITY EDID IS
     PORT(clk, enable, compI2C : IN STD_LOGIC;
@@ -18,7 +18,7 @@ END ENTITY;
 
 ARCHITECTURE BEHAVIOR OF EDID IS
 TYPE FSM IS (IDLE, STARTI2C, SENDADDR, SENDEDID, RESTARTI2C, SENDREAD, HANDLE, READBYTE, READNAME, STOPI2C, REFRESHRATE1, REFRESHRATE2, REFRESHRATE3, REFRESHRATE4, DONE, WAITI2C);
-SIGNAL currentFSM, nextFSM, returnFSM : FSM;
+SIGNAL currentFSM, returnFSM : FSM;
 
 SIGNAL processStart : STD_LOGIC := '0';
 
@@ -37,7 +37,7 @@ BEGIN
     IF RISING_EDGE(clk) THEN
         CASE currentFSM IS
         WHEN IDLE => IF enable THEN
-            nextFSM <= STARTI2C;
+            currentFSM <= STARTI2C;
             ready <= '0';
             nameCount <= 0;
             counter <= 0;
@@ -46,39 +46,39 @@ BEGIN
         END IF;
         WHEN STARTI2C => instructionI2C <= START;
             enableI2C <= '1';
-            nextFSM <= WAITI2C;
+            currentFSM <= WAITI2C;
             returnFSM <= SENDADDR;
         WHEN SENDADDR => instructionI2C <= WRITE;
             byteSend <= x"50";
             enableI2C <= '1';
-            nextFSM <= WAITI2C;
+            currentFSM <= WAITI2C;
             returnFSM <= SENDEDID;
         WHEN SENDEDID => instructionI2C <= WRITE;
             byteSend <= (OTHERS => '0');
             enableI2C <= '1';
-            nextFSM <= WAITI2C;
+            currentFSM <= WAITI2C;
             returnFSM <= RESTARTI2C;
         WHEN RESTARTI2C => instructionI2C <= START;
             enableI2C <= '1';
-            nextFSM <= WAITI2C;
+            currentFSM <= WAITI2C;
             returnFSM <= SENDREAD;
         WHEN SENDREAD => instructionI2C <= WRITE;
             byteSend <= x"51";
             enableI2C <= '1';
-            nextFSM <= WAITI2C;
+            currentFSM <= WAITI2C;
             returnFSM <= HANDLE;
         WHEN HANDLE => instructionI2C <= READ;
             enableI2C <= '1';
-            nextFSM <= WAITI2C;
+            currentFSM <= WAITI2C;
             returnFSM <= HANDLE;
             counter <= counter + 1;
             CASE counter IS
             WHEN 1 => IF byteRCV /= x"00" THEN
-                nextFSM <= IDLE;
+                currentFSM <= IDLE;
                 enableI2C <= '0';
             END IF;
             WHEN 8 => IF byteRCV /= x"00" THEN
-                nextFSM <= IDLE;
+                currentFSM <= IDLE;
                 enableI2C <= '0';
             END IF;
             WHEN 55 => pixelClock(7 DOWNTO 0) <= byteRCV;
@@ -122,32 +122,32 @@ BEGIN
             END CASE;
         WHEN READBYTE => instructionI2C <= READ;
             enableI2C <= '1';
-            nextFSM <= WAITI2C;
+            currentFSM <= WAITI2C;
             returnFSM <= READNAME;
         WHEN READNAME => screenName(7 + nameCount * 8 DOWNTO nameCount * 8) <= byteRCV;
             nameCount <= nameCount + 1;
-            nextFSM <= STOPI2C WHEN nameCount = 12 ELSE READBYTE;
+            currentFSM <= STOPI2C WHEN nameCount = 12 ELSE READBYTE;
         WHEN STOPI2C => instructionI2C <= STOP;
             enableI2C <= '1';
-            nextFSM <= WAITI2C;
+            currentFSM <= WAITI2C;
             returnFSM <= REFRESHRATE1;
         WHEN REFRESHRATE1 => FOR i IN 1 TO 10 LOOP
                 refreshTop <= pixelClock + refreshTop;
             END LOOP;
             refreshBot <= (x"00" & (horPixel + horBlank));
-            nextFSM <= REFRESHRATE2;
+            currentFSM <= REFRESHRATE2;
         WHEN REFRESHRATE2 => IF refreshTop >= refreshBot THEN
             refreshTop <= refreshTop - refreshBot;
             refreshRate <= refreshRate + '1';
         ELSE
             refreshBot <= (x"00" & (vertPixel + verBlank));
-            nextFSM <= REFRESHRATE3;
+            currentFSM <= REFRESHRATE3;
         END IF;
         WHEN REFRESHRATE3 => FOR i IN 1 TO 1000 LOOP
                 refreshTop <= x"00" & refreshRate + refreshTop;
             END LOOP;
             refreshRate <= (OTHERS => '0');
-            nextFSM <= REFRESHRATE4;
+            currentFSM <= REFRESHRATE4;
         WHEN REFRESHRATE4 => IF refreshTop >= refreshBot THEN
             refreshTop <= refreshTop - refreshBot;
             refreshRate <= refreshRate + '1';
@@ -155,27 +155,20 @@ BEGIN
             IF refreshTop > 0 THEN
                 refreshRate <= refreshRate + '1';
             END IF;
-            nextFSM <= DONE;
+            currentFSM <= DONE;
         END IF;
         WHEN DONE => ready <= '1';
             IF NOT enable THEN
-                nextFSM <= IDLE;
+                currentFSM <= IDLE;
             END IF;
         WHEN WAITI2C => IF NOT processStart AND NOT compI2C THEN
             processStart <= '1';
         ELSIF compI2C AND processStart THEN
-            nextFSM <= returnFSM;
+            currentFSM <= returnFSM;
             processStart <= '0';
             enableI2C <= '0';
         END IF;
         END CASE;
     END IF;
 END PROCESS;
-
-    PROCESS(ALL)
-    BEGIN
-        IF RISING_EDGE(clk) THEN
-            currentFSM <= nextFSM;
-        END IF;
-    END PROCESS;
 END ARCHITECTURE;

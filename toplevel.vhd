@@ -15,7 +15,7 @@ ARCHITECTURE behavior OF toplevel IS
 TYPE main IS (READ, WAITSTART, WAITVALUE, DONE);
 SIGNAL currentMain : main;
 
-TYPE display IS (NAME, MANU, RESO, DIME);
+TYPE display IS (HOLD, NAME, MANU, RESO, DIME);
 SIGNAL currentDisplay : display;
 
 CONSTANT CR : STD_LOGIC_VECTOR := x"0D"; --Carriage Return
@@ -126,81 +126,94 @@ BEGIN
     PROCESS(ALL)
         BEGIN
         IF RISING_EDGE(clk) THEN
-            IF NOT enableEDID THEN
-                CASE currentDisplay IS
-                WHEN NAME => nameString <= "Name: ";
-                    nameLogic <= STR2SLV(nameString, nameLogic);
-                    tx_data <= BITSHIFT(tx_name);
-                    IF tx_valid = '1' AND tx_ready = '1' AND nameCounter < 5 THEN
-                        IF counter /= 1 THEN
-                            counter <= counter + 1;
-                        ELSE
-                            nameCounter <= nameCounter + 1;
-                            counter <= 0;
-                        END IF;
-                    ELSIF tx_valid AND tx_ready THEN
-                        tx_valid <= '0';
-                        nameCounter <= 0;
-                        currentDisplay <= MANU;
-                    ELSIF NOT tx_valid THEN
-                        tx_valid <= '1';
-                    END IF;
-                WHEN MANU => tx_data <= screenName(7 + charInd * 8 DOWNTO charInd + 8);
-                    IF tx_valid = '1' AND tx_ready = '1' AND charInd < 11 THEN
-                        IF counter /= 1 THEN
-                            counter <= counter + 1;
-                        ELSE
-                            charInd <= charInd + 1;
-                            counter <= 0;
-                        END IF;
-                    ELSIF tx_valid AND tx_ready THEN
-                        tx_valid <= '0';
-                        charInd <= 0;
-                        currentDisplay <= RESO;
-                    ELSIF NOT tx_valid THEN
-                        tx_valid <= '1';
-                    END IF;
-                WHEN RESO => resoString <= "Resolution: ";
-                    resoLogic <= STR2SLV(resoString, resoLogic);
-                    tx_data <= BITSHIFT(tx_reso);
-                    IF tx_valid = '1' AND tx_ready = '1' AND resoCounter < 11 THEN
-                        IF counter /= 1 THEN
-                            counter <= counter + 1;
-                        ELSE
-                            resoCounter <= resoCounter + 1;
-                            counter <= 0;
-                        END IF;
-                    ELSIF tx_valid AND tx_ready THEN
-                        tx_valid <= '0';
-                        resoCounter <= 0;
-                        currentDisplay <= DIME;
-                    ELSIF NOT tx_valid THEN
-                        tx_valid <= '1';
-                    END IF;
-                WHEN DIME => IF tx_valid = '1' AND tx_ready = '1' THEN
-                    CASE counter IS
-                    WHEN 0 => tx_data <= BITSHIFT(horThou);
-                    WHEN 1 => tx_data <= BITSHIFT(horHund);
-                    WHEN 2 => tx_data <= BITSHIFT(horTens);
-                    WHEN 3 => tx_data <= BITSHIFT(horOnes);
-                    WHEN 4 => tx_data <= BITSHIFT(SP);
-                    WHEN 5 => tx_data <= BITSHIFT(x"78");
-                    WHEN 6 => tx_data <= BITSHIFT(SP);
-                    WHEN 7 => tx_data <= BITSHIFT(vertThou);
-                    WHEN 8 => tx_data <= BITSHIFT(vertHund);
-                    WHEN 9 => tx_data <= BITSHIFT(vertTens);
-                    WHEN 10 => tx_data <= BITSHIFT(vertOnes);
-                    WHEN 11 => tx_data <= BITSHIFT(SP);
-                    WHEN 12 => tx_data <= BITSHIFT(x"40");
-                    WHEN 13 => tx_data <= BITSHIFT(refreshTens);
-                    WHEN 14 => tx_data <= BITSHIFT(refreshOnes);
-                    WHEN 15 => tx_data <= BITSHIFT(x"48");
-                    WHEN 16 => tx_data <= BITSHIFT(x"7A");
-                    END CASE;
-                    counter <= counter + 1;
+            CASE currentDisplay IS
+            WHEN HOLD => nameString <= "      ";
+                nameLogic <= (OTHERS => '0');
+                resoString <= "            ";
+                resoLogic <= (OTHERS => '0');
+                tx_valid <= '0';
+                tx_data <= (OTHERS => '0');
+                charInd <= 0;
+                counter <= 0;
+                nameCounter <= 0;
+                resoCounter <= 0;
+                IF NOT enableEDID THEN
+                    currentDisplay <= NAME;
                 END IF;
+            WHEN NAME => nameString <= "Name: ";
+                tx_valid <= '1';
+                nameLogic <= STR2SLV(nameString, nameLogic);
+                tx_data <= BITSHIFT(tx_name);
+                IF tx_valid = '1' AND tx_ready = '1' AND nameCounter < 5 THEN
+                    IF counter /= 1 THEN
+                        counter <= counter + 1;
+                    ELSE
+                        nameCounter <= nameCounter + 1;
+                        counter <= 0;
+                    END IF;
+                ELSIF tx_valid AND tx_ready THEN
+                    tx_valid <= '0';
+                    nameCounter <= 0;
+                    currentDisplay <= MANU;
+                ELSIF NOT tx_valid THEN
+                    tx_valid <= '1';
+                END IF;
+            WHEN MANU => tx_data <= screenName(7 + charInd * 8 DOWNTO charInd + 8);
+                IF tx_valid = '1' AND tx_ready = '1' AND charInd < 11 THEN
+                    IF counter /= 1 THEN
+                        counter <= counter + 1;
+                    ELSE
+                        charInd <= charInd + 1;
+                        counter <= 0;
+                    END IF;
+                ELSIF tx_valid AND tx_ready THEN
+                    tx_valid <= '0';
+                    charInd <= 0;
+                    currentDisplay <= RESO;
+                ELSIF NOT tx_valid THEN
+                    tx_valid <= '1';
+                END IF;
+            WHEN RESO => resoString <= "Resolution: ";
+                resoLogic <= STR2SLV(resoString, resoLogic);
+                tx_data <= BITSHIFT(tx_reso);
+                IF tx_valid = '1' AND tx_ready = '1' AND resoCounter < 11 THEN
+                    IF counter /= 1 THEN
+                        counter <= counter + 1;
+                    ELSE
+                        resoCounter <= resoCounter + 1;
+                        counter <= 0;
+                    END IF;
+                ELSIF tx_valid AND tx_ready THEN
+                    tx_valid <= '0';
+                    resoCounter <= 0;
+                    currentDisplay <= DIME;
+                ELSIF NOT tx_valid THEN
+                    tx_valid <= '1';
+                END IF;
+            WHEN DIME => IF tx_valid = '1' AND tx_ready = '1' THEN
+                CASE counter IS
+                WHEN 0 => tx_data <= BITSHIFT(horThou);
+                WHEN 1 => tx_data <= BITSHIFT(horHund);
+                WHEN 2 => tx_data <= BITSHIFT(horTens);
+                WHEN 3 => tx_data <= BITSHIFT(horOnes);
+                WHEN 4 => tx_data <= BITSHIFT(SP);
+                WHEN 5 => tx_data <= BITSHIFT(x"78");
+                WHEN 6 => tx_data <= BITSHIFT(SP);
+                WHEN 7 => tx_data <= BITSHIFT(vertThou);
+                WHEN 8 => tx_data <= BITSHIFT(vertHund);
+                WHEN 9 => tx_data <= BITSHIFT(vertTens);
+                WHEN 10 => tx_data <= BITSHIFT(vertOnes);
+                WHEN 11 => tx_data <= BITSHIFT(SP);
+                WHEN 12 => tx_data <= BITSHIFT(x"40");
+                WHEN 13 => tx_data <= BITSHIFT(refreshTens);
+                WHEN 14 => tx_data <= BITSHIFT(refreshOnes);
+                WHEN 15 => tx_data <= BITSHIFT(x"48");
+                WHEN 16 => tx_data <= BITSHIFT(x"7A");
                 END CASE;
+                counter <= counter + 1;
             END IF;
+                currentDisplay <= HOLD;
+            END CASE;
         END IF;
     END PROCESS;
 

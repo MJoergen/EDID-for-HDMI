@@ -47,7 +47,7 @@ SIGNAL horThou, horHund, horTens, horOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 SIGNAL vertThou, vertHund, vertTens, vertOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 SIGNAL refreshThou, refreshHund, refreshTens, refreshOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
-SIGNAL counter : INTEGER RANGE 0 TO 16;
+SIGNAL counter : INTEGER RANGE 0 TO 17;
 SIGNAL nameCounter, resoCounter : INTEGER RANGE 0 TO 13;
 
 COMPONENT I2C IS

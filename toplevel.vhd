@@ -39,7 +39,7 @@ SIGNAL I2CInstruc : state;
 SIGNAL byteSend, byteRCV : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
 SIGNAL enableEDID, readyEDID : STD_LOGIC;
-SIGNAL charInd : INTEGER := 0;
+SIGNAL charInd : INTEGER RANGE 0 TO 13;
 SIGNAL horPixel, vertPixel, refreshRate : STD_LOGIC_VECTOR (11 DOWNTO 0);
 SIGNAL screenName : STD_LOGIC_VECTOR (103 DOWNTO 0);
 

@@ -7,7 +7,7 @@ ENTITY I2C IS
     PORT(clk, SDAin, enable : IN STD_LOGIC;
          instruction : IN state;
          byteSend : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-         complete, clause: OUT STD_LOGIC;
+         complete : OUT STD_LOGIC;
          SDAout, SCL : OUT STD_LOGIC := '1';
          isSend : OUT STD_LOGIC := '0';
          byteReceived : OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
@@ -113,17 +113,6 @@ BEGIN
                     SCL <= '0';
                 END IF;
             END CASE;
-        END IF;
-    END PROCESS;
-
-    PROCESS(ALL)
-    BEGIN
-        IF RISING_EDGE(clk) THEN
-            IF currentState = IDLE THEN
-                clause <= '1';
-            ELSE
-                clause <= '0';
-            END IF;
         END IF;
     END PROCESS;
 END ARCHITECTURE;

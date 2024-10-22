@@ -6,7 +6,7 @@ USE WORK.states.ALL;
 
 ENTITY toplevel IS
     PORT(clk, btn1, RST : IN STD_LOGIC;
-         SCL, TX, stt : OUT STD_LOGIC;
+         SCL, TX : OUT STD_LOGIC;
          SDA : INOUT STD_LOGIC
          );
 END ENTITY;
@@ -31,8 +31,6 @@ SIGNAL nameLogic : STD_LOGIC_VECTOR (47 DOWNTO 0);
 SIGNAL resoString : STRING (12 DOWNTO 1);
 SIGNAL resoLogic : STD_LOGIC_VECTOR (95 DOWNTO 0);
 
-SIGNAL clause : STD_LOGIC;
-
 SIGNAL tx_valid, tx_ready : STD_LOGIC;
 SIGNAL tx_data, tx_name, tx_reso : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
@@ -41,7 +39,7 @@ SIGNAL I2CInstruc : state;
 SIGNAL byteSend, byteRCV : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
 SIGNAL enableEDID, readyEDID : STD_LOGIC;
-SIGNAL charInd : INTEGER;
+SIGNAL charInd : INTEGER := 0;
 SIGNAL horPixel, vertPixel, refreshRate : STD_LOGIC_VECTOR (11 DOWNTO 0);
 SIGNAL screenName : STD_LOGIC_VECTOR (103 DOWNTO 0);
 
@@ -56,7 +54,7 @@ COMPONENT I2C IS
     PORT(clk, SDAin, enable : IN STD_LOGIC;
          instruction : IN state;
          byteSend : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-         complete, clause : OUT STD_LOGIC;
+         complete : OUT STD_LOGIC;
          SDAout, SCL : OUT STD_LOGIC := '1';
          isSend : OUT STD_LOGIC := '0';
          byteReceived : OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
@@ -110,7 +108,7 @@ IMPURE FUNCTION STR2SLV (str : STRING; size : STD_LOGIC_VECTOR) RETURN STD_LOGIC
 END FUNCTION;
 
 BEGIN
-    DATA : I2C PORT MAP(clk => clk, SDAin => SDAIn, enable => I2CEnable, instruction => I2CInstruc, byteSend => byteSend, complete => I2Ccomp, clause => clause, SDAout => SDAOut, SCL => SCL, isSend => isSend, byteReceived => byteRCV);
+    DATA : I2C PORT MAP(clk => clk, SDAin => SDAIn, enable => I2CEnable, instruction => I2CInstruc, byteSend => byteSend, complete => I2Ccomp, SDAout => SDAOut, SCL => SCL, isSend => isSend, byteReceived => byteRCV);
     INFO :  EDID PORT MAP(clk => clk, enable => enableEDID, compI2C => I2Ccomp, byteRCV => byteRCV, ready => readyEDID, enableI2C => I2Cenable, instructionI2C => I2CInstruc, horPixel => horPixel, vertPixel => vertPixel, refreshRate => refreshRate, screenName => screenName, byteSend => byteSend);
     HOR : conv PORT MAP(clk => clk, char => horPixel, thou => horThou, hund => horHund, tens => horTens, ones => horOnes);
     VERT : conv PORT MAP(clk => clk, char => vertPixel, thou => vertThou, hund => vertHund, tens => vertTens, ones => vertOnes);
@@ -141,6 +139,7 @@ BEGIN
                             counter <= 0;
                         END IF;
                     ELSIF tx_valid AND tx_ready THEN
+                        tx_valid <= '0';
                         nameCounter <= 0;
                         currentDisplay <= MANU;
                     ELSIF NOT tx_valid THEN
@@ -155,6 +154,7 @@ BEGIN
                             counter <= 0;
                         END IF;
                     ELSIF tx_valid AND tx_ready THEN
+                        tx_valid <= '0';
                         charInd <= 0;
                         currentDisplay <= RESO;
                     ELSIF NOT tx_valid THEN
@@ -171,6 +171,7 @@ BEGIN
                             counter <= 0;
                         END IF;
                     ELSIF tx_valid AND tx_ready THEN
+                        tx_valid <= '0';
                         resoCounter <= 0;
                         currentDisplay <= DIME;
                     ELSIF NOT tx_valid THEN
@@ -230,17 +231,6 @@ BEGIN
         IF RISING_EDGE(clk) THEN
             tx_name <= nameLogic(47 - nameCounter * 8 DOWNTO 40 - nameCounter * 8);
             tx_reso <= resoLogic(95 - resoCounter * 8 DOWNTO 88 - resoCounter * 8);
-        END IF;
-    END PROCESS;
-
-    PROCESS(ALL)
-        BEGIN
-        IF RISING_EDGE(clk) THEN
-            IF NOT clause THEN
-                stt <= '0';
-            ELSE
-                stt <= '1';
-            END IF;
         END IF;
     END PROCESS;
 END ARCHITECTURE;

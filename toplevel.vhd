@@ -48,7 +48,7 @@ SIGNAL vertThou, vertHund, vertTens, vertOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 SIGNAL refreshThou, refreshHund, refreshTens, refreshOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
 SIGNAL counter : INTEGER RANGE 0 TO 16;
-SIGNAL nameCounter, resoCounter : INTEGER;
+SIGNAL nameCounter, resoCounter : INTEGER RANGE 0 TO 13;
 
 COMPONENT I2C IS
     PORT(clk, SDAin, enable : IN STD_LOGIC;

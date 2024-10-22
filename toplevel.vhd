@@ -190,7 +190,7 @@ BEGIN
                 ELSIF NOT tx_valid THEN
                     tx_valid <= '1';
                 END IF;
-            WHEN DIME => IF tx_valid = '1' AND tx_ready = '1' AND counter <= 16 THEN
+            WHEN DIME => IF tx_valid = '1' AND tx_ready = '1' THEN
                 CASE counter IS
                 WHEN 0 => tx_data <= BITSHIFT(horThou);
                     tx_valid <= '0';
@@ -226,10 +226,9 @@ BEGIN
                     tx_valid <= '0';
                 WHEN 16 => tx_data <= BITSHIFT(x"7A");
                     tx_valid <= '0';
+                WHEN 17 => currentDisplay <= HOLD;
                 END CASE;
                 counter <= counter + 1;
-            ELSIF counter = 17 THEN
-                currentDisplay <= HOLD;
             ELSIF tx_valid <= '0' THEN
                 tx_valid <= '1';
             END IF;

@@ -158,7 +158,7 @@ BEGIN
                 ELSIF NOT tx_valid THEN
                     tx_valid <= '1';
                 END IF;
-            WHEN MANU => tx_data <= screenName(7 + charInd * 8 DOWNTO charInd + 8);
+            WHEN MANU => tx_data <= screenName(7 + charInd * 8 DOWNTO charInd * 8);
                 IF tx_valid = '1' AND tx_ready = '1' AND charInd < 11 THEN
                     IF counter /= 1 THEN
                         counter <= counter + 1;
@@ -190,29 +190,49 @@ BEGIN
                 ELSIF NOT tx_valid THEN
                     tx_valid <= '1';
                 END IF;
-            WHEN DIME => IF tx_valid = '1' AND tx_ready = '1' THEN
+            WHEN DIME => IF tx_valid = '1' AND tx_ready = '1' AND counter <= 16 THEN
                 CASE counter IS
                 WHEN 0 => tx_data <= BITSHIFT(horThou);
+                    tx_valid <= '0';
                 WHEN 1 => tx_data <= BITSHIFT(horHund);
+                    tx_valid <= '0';
                 WHEN 2 => tx_data <= BITSHIFT(horTens);
+                    tx_valid <= '0';
                 WHEN 3 => tx_data <= BITSHIFT(horOnes);
+                    tx_valid <= '0';
                 WHEN 4 => tx_data <= BITSHIFT(SP);
+                    tx_valid <= '0';
                 WHEN 5 => tx_data <= BITSHIFT(x"78");
+                    tx_valid <= '0';
                 WHEN 6 => tx_data <= BITSHIFT(SP);
+                    tx_valid <= '0';
                 WHEN 7 => tx_data <= BITSHIFT(vertThou);
+                    tx_valid <= '0';
                 WHEN 8 => tx_data <= BITSHIFT(vertHund);
+                    tx_valid <= '0';
                 WHEN 9 => tx_data <= BITSHIFT(vertTens);
+                    tx_valid <= '0';
                 WHEN 10 => tx_data <= BITSHIFT(vertOnes);
-                WHEN 11 => tx_data <= BITSHIFT(SP);
+                    tx_valid <= '0';
+                WHEN 11 => tx_data <= BITSHIFT(SP); 
+                    tx_valid <= '0';
                 WHEN 12 => tx_data <= BITSHIFT(x"40");
+                    tx_valid <= '0';
                 WHEN 13 => tx_data <= BITSHIFT(refreshTens);
+                    tx_valid <= '0';
                 WHEN 14 => tx_data <= BITSHIFT(refreshOnes);
+                    tx_valid <= '0';
                 WHEN 15 => tx_data <= BITSHIFT(x"48");
+                    tx_valid <= '0';
                 WHEN 16 => tx_data <= BITSHIFT(x"7A");
+                    tx_valid <= '0';
                 END CASE;
                 counter <= counter + 1;
-            END IF;
+            ELSIF counter = 17 THEN
                 currentDisplay <= HOLD;
+            ELSIF tx_valid <= '0' THEN
+                tx_valid <= '1';
+            END IF;
             END CASE;
         END IF;
     END PROCESS;

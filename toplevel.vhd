@@ -47,7 +47,7 @@ SIGNAL horThou, horHund, horTens, horOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 SIGNAL vertThou, vertHund, vertTens, vertOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 SIGNAL refreshThou, refreshHund, refreshTens, refreshOnes : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
-SIGNAL counter : INTEGER RANGE 0 TO 17;
+SIGNAL counter : INTEGER RANGE 0 TO 18;
 SIGNAL nameCounter, resoCounter : INTEGER RANGE 0 TO 13;
 
 COMPONENT I2C IS
@@ -227,6 +227,7 @@ BEGIN
                 WHEN 16 => tx_data <= BITSHIFT(x"7A");
                     tx_valid <= '0';
                 WHEN 17 => currentDisplay <= HOLD;
+                WHEN OTHERS => NULL;
                 END CASE;
                 counter <= counter + 1;
             ELSIF tx_valid <= '0' THEN

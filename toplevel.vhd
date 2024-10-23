@@ -6,8 +6,8 @@ USE WORK.states.ALL;
 
 ENTITY toplevel IS
     PORT(clk, btn1, RST : IN STD_LOGIC;
-         SCL, TX : OUT STD_LOGIC;
-         SDA : INOUT STD_LOGIC
+         SCL, TX, mirrord, mirrorc : OUT STD_LOGIC := '1';
+         SDA : INOUT STD_LOGIC := '1'
          );
 END ENTITY;
 
@@ -16,7 +16,7 @@ TYPE main IS (READ, WAITSTART, WAITVALUE, DONE);
 SIGNAL currentMain : main;
 
 TYPE display IS (HOLD, NAME, MANU, RESO, DIME);
-SIGNAL currentDisplay : display;
+SIGNAL currentDisplay : display := HOLD;
 
 CONSTANT CR : STD_LOGIC_VECTOR := x"0D"; --Carriage Return
 CONSTANT LF : STD_LOGIC_VECTOR := x"0A"; --Line Feed
@@ -32,7 +32,7 @@ SIGNAL resoString : STRING (12 DOWNTO 1);
 SIGNAL resoLogic : STD_LOGIC_VECTOR (95 DOWNTO 0);
 
 SIGNAL tx_valid, tx_ready : STD_LOGIC;
-SIGNAL tx_data, tx_name, tx_reso : STD_LOGIC_VECTOR (7 DOWNTO 0);
+SIGNAL tx_data, tx_name, tx_reso, creator : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
 SIGNAL isSend, SDAIn, SDAOut, I2CComp, I2CEnable : STD_LOGIC;
 SIGNAL I2CInstruc : state;
@@ -109,7 +109,7 @@ END FUNCTION;
 
 BEGIN
     DATA : I2C PORT MAP(clk => clk, SDAin => SDAIn, enable => I2CEnable, instruction => I2CInstruc, byteSend => byteSend, complete => I2Ccomp, SDAout => SDAOut, SCL => SCL, isSend => isSend, byteReceived => byteRCV);
-    INFO :  EDID PORT MAP(clk => clk, enable => enableEDID, compI2C => I2Ccomp, byteRCV => byteRCV, ready => readyEDID, enableI2C => I2Cenable, instructionI2C => I2CInstruc, horPixel => horPixel, vertPixel => vertPixel, refreshRate => refreshRate, screenName => screenName, byteSend => byteSend);
+    INFO :  EDID PORT MAP(clk => clk, enable => enableEDID, compI2C => I2Ccomp, byteRCV => byteRCV, ready => readyEDID, enableI2C => I2CEnable, instructionI2C => I2CInstruc, horPixel => horPixel, vertPixel => vertPixel, refreshRate => refreshRate, screenName => screenName, byteSend => byteSend);
     HOR : conv PORT MAP(clk => clk, char => horPixel, thou => horThou, hund => horHund, tens => horTens, ones => horOnes);
     VERT : conv PORT MAP(clk => clk, char => vertPixel, thou => vertThou, hund => vertHund, tens => vertTens, ones => vertOnes);
     PIXEL : conv PORT MAP(clk => clk, char => refreshRate, thou => refreshThou, hund => refreshHund, tens => refreshTens, ones => refreshOnes);
@@ -120,6 +120,8 @@ BEGIN
         IF RISING_EDGE(clk) THEN
             SDA <= '0' WHEN (isSend AND NOT SDAOut) ELSE 'Z';
             SDAIn <= '1' WHEN SDA ELSE '0';
+            mirrord <= SDA;
+            mirrorc <= SCL;
         END IF;
     END PROCESS;
 
@@ -138,19 +140,14 @@ BEGIN
                 nameCounter <= 0;
                 resoCounter <= 0;
                 IF NOT enableEDID THEN
+                    tx_valid <= '1';
                     currentDisplay <= NAME;
                 END IF;
             WHEN NAME => nameString <= "Name: ";
-                tx_valid <= '1';
                 nameLogic <= STR2SLV(nameString, nameLogic);
                 tx_data <= BITSHIFT(tx_name);
                 IF tx_valid = '1' AND tx_ready = '1' AND nameCounter < 5 THEN
-                    IF counter /= 1 THEN
-                        counter <= counter + 1;
-                    ELSE
-                        nameCounter <= nameCounter + 1;
-                        counter <= 0;
-                    END IF;
+                    nameCounter <= nameCounter + 1;
                 ELSIF tx_valid AND tx_ready THEN
                     tx_valid <= '0';
                     nameCounter <= 0;
@@ -158,14 +155,10 @@ BEGIN
                 ELSIF NOT tx_valid THEN
                     tx_valid <= '1';
                 END IF;
-            WHEN MANU => tx_data <= screenName(7 + charInd * 8 DOWNTO charInd * 8);
+            WHEN MANU => creator <= screenName(7 + charInd * 8 DOWNTO charInd * 8);
+                tx_data <= BITSHIFT(creator);
                 IF tx_valid = '1' AND tx_ready = '1' AND charInd < 11 THEN
-                    IF counter /= 1 THEN
-                        counter <= counter + 1;
-                    ELSE
-                        charInd <= charInd + 1;
-                        counter <= 0;
-                    END IF;
+                    charInd <= charInd + 1;
                 ELSIF tx_valid AND tx_ready THEN
                     tx_valid <= '0';
                     charInd <= 0;
@@ -177,12 +170,7 @@ BEGIN
                 resoLogic <= STR2SLV(resoString, resoLogic);
                 tx_data <= BITSHIFT(tx_reso);
                 IF tx_valid = '1' AND tx_ready = '1' AND resoCounter < 11 THEN
-                    IF counter /= 1 THEN
-                        counter <= counter + 1;
-                    ELSE
-                        resoCounter <= resoCounter + 1;
-                        counter <= 0;
-                    END IF;
+                    resoCounter <= resoCounter + 1;
                 ELSIF tx_valid AND tx_ready THEN
                     tx_valid <= '0';
                     resoCounter <= 0;

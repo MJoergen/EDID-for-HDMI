@@ -26,23 +26,23 @@ BEGIN
         CASE currentState IS
         WHEN IDLE => IF tx_valid = '1' THEN
             currentState <= START;
-        ELSE
-            currentState <= IDLE;
         END IF;
         WHEN START => IF counter = BAUD THEN
             currentState <= SEND;
         ELSE
-            currentState <= START;
+            counter <= counter + '1';
         END IF;
         WHEN SEND => IF counter = BAUD AND bits = 0 THEN
             currentState <= STOP;
+        ELSIF counter = BAUD AND bits > 0 THEN
+            bits <= bits - 1;
         ELSE
-            currentState <= SEND;
+            counter <= counter + '1';
         END IF;
         WHEN STOP => IF counter = BAUD THEN
             currentState <= IDLE;
         ELSE
-            currentState <= STOP;
+            counter <= counter + '1';
         END IF;
         END CASE;
     END PROCESS;
@@ -61,8 +61,6 @@ BEGIN
                 WHEN START => IF counter = BAUD THEN
                     tx_OUT <= '0';
                     counter <= (OTHERS => '0');
-                ELSE
-                    counter <= counter + '1';
                 END IF;
                 WHEN SEND => IF counter = BAUD AND bits = 0 THEN
                     tx_OUT <= tx_data(bits);    
@@ -70,17 +68,12 @@ BEGIN
                 ELSIF counter = BAUD AND bits > 0 THEN
                     tx_OUT <= tx_data(bits);
                     counter <= (OTHERS => '0');
-                    bits <= bits - 1;
-                ELSE
-                    counter <= counter + '1';
                 END IF;
                 WHEN STOP => IF counter = BAUD THEN
                     bits <= 7;
                     tx_ready <= '1';
                     tx_OUT <= '1';
                     counter <= (OTHERS => '0');
-                ELSE
-                    counter <= counter + '1';
                 END IF;
                 END CASE;
             END IF;

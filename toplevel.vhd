@@ -3,6 +3,7 @@ USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.NUMERIC_STD.ALL;
 USE IEEE.NUMERIC_STD_UNSIGNED.ALL;
 USE WORK.states.ALL;
+USE WORK.dataBytes.ALL;
 
 ENTITY toplevel IS
     PORT(clk, btn1, RST : IN STD_LOGIC;
@@ -38,7 +39,7 @@ SIGNAL isSend, SDAIn, SDAOut, I2CComp, I2CEnable : STD_LOGIC;
 SIGNAL I2CInstruc : state;
 SIGNAL byteSend, byteRCV : STD_LOGIC_VECTOR (7 DOWNTO 0);
 
-SIGNAL enableEDID, readyEDID : STD_LOGIC;
+SIGNAL enableEDID, readyEDID, parseReady : STD_LOGIC;
 SIGNAL charInd : INTEGER RANGE 0 TO 13;
 SIGNAL horPixel, vertPixel, refreshRate : STD_LOGIC_VECTOR (11 DOWNTO 0);
 SIGNAL screenName : STD_LOGIC_VECTOR (103 DOWNTO 0);
@@ -49,6 +50,8 @@ SIGNAL refreshThou, refreshHund, refreshTens, refreshOnes : STD_LOGIC_VECTOR (7 
 
 SIGNAL counter : INTEGER RANGE 0 TO 18;
 SIGNAL nameCounter, resoCounter : INTEGER RANGE 0 TO 13;
+
+SIGNAL readData : data;
 
 COMPONENT I2C IS
     PORT(clk, SDAin, enable : IN STD_LOGIC;
@@ -61,15 +64,23 @@ COMPONENT I2C IS
          );
 END COMPONENT;
 
-COMPONENT EDID IS
+COMPONENT EDIDI2C IS
     PORT(clk, enable, compI2C : IN STD_LOGIC;
          byteRCV : IN STD_LOGIC_VECTOR (7 DOWNTO 0);
          ready : OUT STD_LOGIC := '1';
          enableI2C : OUT STD_LOGIC := '0';
+         parseReady : OUT STD_LOGIC := '0';
          instructionI2C : OUT state;
-         horPixel, vertPixel, refreshRate : OUT STD_LOGIC_VECTOR (11 DOWNTO 0);
-         screenName : OUT STD_LOGIC_VECTOR (103 DOWNTO 0);
+         readData : OUT data;
          byteSend : OUT STD_LOGIC_VECTOR (7 DOWNTO 0) := (OTHERS => '0')
+        );
+END COMPONENT;
+
+COMPONENT EDID IS
+    PORT(clk, enable : IN STD_LOGIC;
+         readData : IN data;
+         horPixel, vertPixel, refreshRate : OUT STD_LOGIC_VECTOR (11 DOWNTO 0);
+         screenName : OUT STD_LOGIC_VECTOR (103 DOWNTO 0)
         );
 END COMPONENT;
 
@@ -109,7 +120,8 @@ END FUNCTION;
 
 BEGIN
     DATA : I2C PORT MAP(clk => clk, SDAin => SDAIn, enable => I2CEnable, instruction => I2CInstruc, byteSend => byteSend, complete => I2Ccomp, SDAout => SDAOut, SCL => SCL, isSend => isSend, byteReceived => byteRCV);
-    INFO :  EDID PORT MAP(clk => clk, enable => enableEDID, compI2C => I2Ccomp, byteRCV => byteRCV, ready => readyEDID, enableI2C => I2CEnable, instructionI2C => I2CInstruc, horPixel => horPixel, vertPixel => vertPixel, refreshRate => refreshRate, screenName => screenName, byteSend => byteSend);
+    INFO : EDID PORT MAP(clk => clk, enable => parseReady, readData => readData, horPixel => horPixel, vertPixel => vertPixel, refreshRate => refreshRate, screenName => screenName);
+    INFOI2C : EDIDI2C PORT MAP(clk => clk, enable => enableEDID, compI2C => I2CComp, byteRCV => byteRCV, ready => readyEDID, enableI2C => I2CEnable, parseReady => parseReady, instructionI2C => I2CInstruc, readData => readData, byteSend => byteSend);
     HOR : conv PORT MAP(clk => clk, char => horPixel, thou => horThou, hund => horHund, tens => horTens, ones => horOnes);
     VERT : conv PORT MAP(clk => clk, char => vertPixel, thou => vertThou, hund => vertHund, tens => vertTens, ones => vertOnes);
     PIXEL : conv PORT MAP(clk => clk, char => refreshRate, thou => refreshThou, hund => refreshHund, tens => refreshTens, ones => refreshOnes);

@@ -23,7 +23,7 @@ SIGNAL currentFSM, returnFSM : FSM := IDLE;
 
 SIGNAL processStart : STD_LOGIC := '0';
 
-SIGNAL counter : INTEGER RANGE 0 TO 257;
+SIGNAL counter : INTEGER RANGE 1 TO 256 := 1;
 
 BEGIN
 
@@ -31,17 +31,18 @@ PROCESS(ALL)
 BEGIN
     IF RISING_EDGE(clk) THEN
         CASE currentFSM IS
-        WHEN IDLE => IF enable THEN
+        WHEN IDLE => parseReady <= '0';
+            IF enable THEN
             currentFSM <= STARTI2C;
             ready <= '0';
-            counter <= 0;
+            counter <= 1;
         END IF;
         WHEN STARTI2C => instructionI2C <= START;
             enableI2C <= '1';
             currentFSM <= WAITI2C;
             returnFSM <= SENDADDR;
         WHEN SENDADDR => instructionI2C <= WRITE;
-            byteSend <= x"50";
+            byteSend <= x"A0";
             enableI2C <= '1';
             currentFSM <= WAITI2C;
             returnFSM <= SENDEDID;
@@ -55,7 +56,7 @@ BEGIN
             currentFSM <= WAITI2C;
             returnFSM <= SENDREAD;
         WHEN SENDREAD => instructionI2C <= WRITE;
-            byteSend <= x"51";
+            byteSend <= x"A1";
             enableI2C <= '1';
             currentFSM <= WAITI2C;
             returnFSM <= HANDLE;

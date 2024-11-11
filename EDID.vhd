@@ -7,6 +7,7 @@ USE WORK.dataBytes.ALL;
 ENTITY EDID IS
     PORT(clk, enable : IN STD_LOGIC;
          readData : IN data;
+         LED : OUT STD_LOGIC;
          horPixel, vertPixel, refreshRate : OUT STD_LOGIC_VECTOR (11 DOWNTO 0);
          screenName : OUT STD_LOGIC_VECTOR (103 DOWNTO 0)
         );
@@ -18,13 +19,13 @@ SIGNAL currentFSM : FSM;
 
 SIGNAL processStart : STD_LOGIC := '0';
 
-SIGNAL horBlank, verBlank : STD_LOGIC_VECTOR (11 DOWNTO 0);
-SIGNAL pixelClock : STD_LOGIC_VECTOR (15 DOWNTO 0);
+SIGNAL horBlank, verBlank : STD_LOGIC_VECTOR (11 DOWNTO 0) := (OTHERS => '0');
+SIGNAL pixelClock : STD_LOGIC_VECTOR (15 DOWNTO 0) := (OTHERS => '0');
 
-SIGNAL foundPrefix : STD_LOGIC_VECTOR (2 DOWNTO 0);
-SIGNAL nameCount : INTEGER RANGE 0 TO 14;
-SIGNAL counter : INTEGER RANGE 0 TO 257;
-SIGNAL refreshTop, refreshBot : STD_LOGIC_VECTOR (19 DOWNTO 0);
+SIGNAL foundPrefix : STD_LOGIC_VECTOR (2 DOWNTO 0) := (OTHERS => '0');
+SIGNAL nameCount : INTEGER RANGE 0 TO 14 := 0;
+SIGNAL counter : INTEGER RANGE 1 TO 257 := 1;
+SIGNAL refreshTop, refreshBot : STD_LOGIC_VECTOR (19 DOWNTO 0) := (OTHERS => '0');
 
 BEGIN
 
@@ -38,19 +39,22 @@ BEGIN
             pixelClock <= (OTHERS => '0');
             foundPrefix <= (OTHERS => '0');
             nameCount <= 0;
-            counter <= 0;
+            counter <= 1;
             refreshTop <= (OTHERS => '0');
             refreshBot <= (OTHERS => '0');
+            LED <= '1';
             IF enable THEN
                 currentFSM <= HANDLE;
             END IF;
         WHEN HANDLE => counter <= counter + 1;
             CASE counter IS
             WHEN 1 => IF readData(counter) /= x"00" THEN
-                currentFSM <= IDLE;
+                LED <= '0';
+                currentFSM <= DONE;
             END IF;
             WHEN 8 => IF readData(counter) /= x"00" THEN
-                currentFSM <= IDLE;
+                LED <= '0';
+                currentFSM <= DONE;
             END IF;
             WHEN 55 => pixelClock(7 DOWNTO 0) <= readData(counter);
             WHEN 56 => pixelClock(15 DOWNTO 8) <= readData(counter);
@@ -92,8 +96,9 @@ BEGIN
             WHEN OTHERS => NULL;
             END CASE;
         WHEN READNAME => screenName(7 + nameCount * 8 DOWNTO nameCount * 8) <= readData(counter);
+            counter <= counter + 1;
             nameCount <= nameCount + 1;
-            currentFSM <= REFRESHRATE1 WHEN nameCount = 12 ELSE HANDLE;
+            currentFSM <= REFRESHRATE1 WHEN nameCount = 12 ELSE READNAME;
         WHEN REFRESHRATE1 => FOR i IN 1 TO 10 LOOP
                 refreshTop <= pixelClock + refreshTop;
             END LOOP;

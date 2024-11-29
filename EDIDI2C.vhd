@@ -23,7 +23,7 @@ SIGNAL currentFSM, returnFSM : FSM := IDLE;
 
 SIGNAL processStart : STD_LOGIC := '0';
 
-SIGNAL counter : INTEGER RANGE 1 TO 256 := 1;
+SIGNAL counter : INTEGER RANGE 0 TO 257 := 0;
 
 BEGIN
 
@@ -35,7 +35,7 @@ BEGIN
             IF enable THEN
             currentFSM <= STARTI2C;
             ready <= '0';
-            counter <= 1;
+            counter <= 0;
         END IF;
         WHEN STARTI2C => instructionI2C <= START;
             enableI2C <= '1';

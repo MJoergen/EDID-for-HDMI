@@ -34,6 +34,21 @@ architecture behavior of edid_tb is
    signal   refreshrate : std_logic_vector(11 downto 0);
    signal   screenname  : std_logic_vector(103 downto 0);
 
+   signal   horthou : std_logic_vector(7 downto 0);
+   signal   horhund : std_logic_vector(7 downto 0);
+   signal   hortens : std_logic_vector(7 downto 0);
+   signal   horones : std_logic_vector(7 downto 0);
+
+   signal   verthou : std_logic_vector(7 downto 0);
+   signal   verhund : std_logic_vector(7 downto 0);
+   signal   vertens : std_logic_vector(7 downto 0);
+   signal   verones : std_logic_vector(7 downto 0);
+
+   signal   refthou : std_logic_vector(7 downto 0);
+   signal   refhund : std_logic_vector(7 downto 0);
+   signal   reftens : std_logic_vector(7 downto 0);
+   signal   refones : std_logic_vector(7 downto 0);
+
    type     char_file_type is file of character;
 
    type     edid_rom_type is array(natural range <>) of std_logic_vector(7 downto 0);
@@ -127,6 +142,35 @@ begin
          screenname  => screenname
       ); -- edid_inst
 
+   hor_inst : entity work.conv
+	port map (
+	   clk => clk,
+	   char => horpixel,
+    	   thou => horthou,
+	   hund => horhund,
+	   tens => hortens,
+	   ones => horones
+	);
+
+   ver_inst : entity work.conv
+	port map (
+	   clk => clk,
+	   char => vertpixel,
+    	   thou => verthou,
+	   hund => verhund,
+	   tens => vertens,
+	   ones => verones
+	);
+
+   ref_inst : entity work.conv
+	port map (
+	   clk => clk,
+	   char => refreshrate,
+    	   thou => refthou,
+	   hund => refhund,
+	   tens => reftens,
+	   ones => refones
+	);
 
    -- Show output
    output_proc : process
@@ -138,9 +182,9 @@ begin
          s_v(i + 1) := character'val(to_integer(unsigned(screenname(8 * i + 7 downto 8 * i))));
       end loop;
 
-      report "Horizontal pixels = " & to_string(to_integer(unsigned(horpixel)));
-      report "Vertical pixels   = " & to_string(to_integer(unsigned(vertpixel)));
-      report "Refresh rate      = " & to_string(to_integer(unsigned(refreshrate)));
+      report "Horizontal pixels = " & to_string(to_integer(unsigned(horthou))) & to_string(to_integer(unsigned(horhund))) & to_string(to_integer(unsigned(hortens))) & to_string(to_integer(unsigned(horones)));
+      report "Vertical pixels   = " & to_string(to_integer(unsigned(verthou))) & to_string(to_integer(unsigned(verhund))) & to_string(to_integer(unsigned(vertens))) & to_string(to_integer(unsigned(verones)));
+      report "Refresh rate      = " & to_string(to_integer(unsigned(refthou))) & to_string(to_integer(unsigned(refhund))) & to_string(to_integer(unsigned(reftens))) & to_string(to_integer(unsigned(refones)));
       report "Screen Name       = " & s_v;
 
       wait;

@@ -24,7 +24,7 @@ SIGNAL pixelClock : STD_LOGIC_VECTOR (15 DOWNTO 0) := (OTHERS => '0');
 
 SIGNAL foundPrefix : STD_LOGIC_VECTOR (2 DOWNTO 0) := (OTHERS => '0');
 SIGNAL nameCount : INTEGER RANGE 0 TO 14 := 0;
-SIGNAL counter : INTEGER RANGE 1 TO 257 := 1;
+SIGNAL counter : INTEGER RANGE 0 TO 257 := 0;
 SIGNAL refreshTop, refreshBot : STD_LOGIC_VECTOR (19 DOWNTO 0) := (OTHERS => '0');
 
 BEGIN
@@ -39,7 +39,7 @@ BEGIN
             pixelClock <= (OTHERS => '0');
             foundPrefix <= (OTHERS => '0');
             nameCount <= 0;
-            counter <= 1;
+            counter <= 0;
             refreshTop <= (OTHERS => '0');
             refreshBot <= (OTHERS => '0');
             LED <= '1';
